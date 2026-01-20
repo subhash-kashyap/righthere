@@ -15,12 +15,13 @@ struct AskView: View {
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
                 
-                Spacer()
-                
                 if isLoading {
                     ProgressView()
                         .controlSize(.small)
+                        .scaleEffect(0.8)
                 }
+                
+                Spacer()
                 
                 // Settings Button
                 Button(action: {
@@ -45,21 +46,38 @@ struct AskView: View {
                 .help("Close")
             }
             .padding(.horizontal, 16)
-            .padding(.top, 16)
+            .padding(.top, 24) // Increased top padding to avoid cutoff
             .padding(.bottom, 12)
             
             // Context (if any)
             if !appState.selectedText.isEmpty {
-                Text(appState.selectedText)
-                    .font(.system(size: 12))
-                    .lineLimit(3)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(spacing: 8) {
+                    ScrollView {
+                        TextEditor(text: $appState.selectedText)
+                            .font(.system(size: 12))
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(height: 80)
                     .background(Color.primary.opacity(0.05))
                     .cornerRadius(8)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-                    .foregroundColor(.secondary)
+                    
+                    // Quick Select Options
+                    HStack(spacing: 8) {
+                        QuickActionButton(title: "ELI5") {
+                            prompt = "Explain this like I'm 5: "
+                            isFocused = true
+                        }
+                        QuickActionButton(title: "Rewrite") {
+                            prompt = "Rewrite this to be more professional: "
+                            isFocused = true
+                        }
+                        Spacer()
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
             
             // Input
@@ -70,6 +88,7 @@ struct AskView: View {
                 .cornerRadius(12)
                 .padding(.horizontal, 16)
                 .focused($isFocused)
+                .accentColor(.primary) // Black/Primary cursor
                 .onSubmit {
                     sendToAI()
                 }
@@ -81,8 +100,9 @@ struct AskView: View {
                         .lineSpacing(4)
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled) // Enable copy/selection
                 }
-                .frame(minHeight: 120, maxHeight: 400) // Ensure at least ~5-6 lines height
+                .frame(minHeight: 160, maxHeight: 400) // Ensure at least ~7-8 lines height
                 .background(Color.primary.opacity(0.03))
                 .cornerRadius(12)
                 .padding(16)
@@ -115,8 +135,11 @@ struct AskView: View {
         guard !prompt.isEmpty else { return }
         let currentPrompt = prompt
         let currentContext = appState.selectedText
+        
+        // Reset state for new question
         isLoading = true
-        response = "" // Clear previous response when sending new one
+        response = ""
+        // Keep the prompt in the box as requested
         
         Task {
             let aiService = AIService(apiKey: appState.apiKey)
@@ -155,5 +178,22 @@ struct VisualEffectView: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
+    }
+}
+
+struct QuickActionButton: View {
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.primary.opacity(0.1))
+                .cornerRadius(4)
+        }
+        .buttonStyle(.plain)
     }
 }

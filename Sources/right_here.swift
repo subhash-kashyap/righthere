@@ -126,17 +126,18 @@ class AppState: ObservableObject {
     }
     
     func showAskDialog(with initialText: String = "") {
-        self.selectedText = initialText
-        
-        // Notify AskView to clear previous response/loader
+        // Notify AskView to clear previous response/loader FIRST
         NotificationCenter.default.post(name: NSNotification.Name("ResetAskView"), object: nil)
+        
+        // Then set the context
+        self.selectedText = initialText
         
         if askWindow == nil {
             let view = AskView(appState: self)
             let hostingController = NSHostingController(rootView: view)
             
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 350),
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 200),
                 styleMask: [.borderless, .titled, .fullSizeContentView], 
                 backing: .buffered,
                 defer: false

@@ -1,0 +1,15 @@
+.build/
+.DS_Store
+*.app/
+*.swiftsourceinfo
+*.abi.json
+*.swiftdoc
+*.swiftmodule
+.repos/
+Packages/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.bundle
+*.dSYM
+*.yml
