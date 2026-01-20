@@ -5,6 +5,7 @@ struct AskView: View {
     @State private var prompt: String = ""
     @State private var response: String = ""
     @State private var isLoading: Bool = false
+    @State private var isContextVisible: Bool = false
     @FocusState private var isFocused: Bool
     
     var body: some View {
@@ -14,6 +15,23 @@ struct AskView: View {
                 Text("ask right here")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
+                
+                // Toggle Button +/- c
+                Text(isContextVisible || !appState.selectedText.isEmpty ? "- c" : "+ c")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(.secondary.opacity(0.7))
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3)) {
+                            if isContextVisible || !appState.selectedText.isEmpty {
+                                // If context is visible (manual or data), hide it and clear data
+                                isContextVisible = false
+                                appState.selectedText = ""
+                            } else {
+                                // If hidden, show manual context
+                                isContextVisible = true
+                            }
+                        }
+                    }
                 
                 if isLoading {
                     ProgressView()
@@ -32,7 +50,7 @@ struct AskView: View {
                         .font(.system(size: 14))
                 }
                 .buttonStyle(.plain)
-                .help("Settings")
+                .help("settings")
                 
                 // Close Button
                 Button(action: {
@@ -43,16 +61,24 @@ struct AskView: View {
                         .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
-                .help("Close")
+                .help("close")
             }
             .padding(.horizontal, 16)
             .padding(.top, 24) // Increased top padding to avoid cutoff
             .padding(.bottom, 12)
             
             // Context (if any)
-            if !appState.selectedText.isEmpty {
-                VStack(spacing: 8) {
-                    ScrollView {
+            if isContextVisible || !appState.selectedText.isEmpty {
+                VStack(alignment: .trailing, spacing: 6) {
+                    ZStack(alignment: .topLeading) {
+                        if appState.selectedText.isEmpty {
+                            Text("put context here...")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary.opacity(0.4))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 14)
+                        }
+                        
                         TextEditor(text: $appState.selectedText)
                             .font(.system(size: 12))
                             .scrollContentBackground(.hidden)
@@ -63,13 +89,12 @@ struct AskView: View {
                     .background(Color.primary.opacity(0.05))
                     .cornerRadius(8)
                     
-                    // Quick Select Options
                     HStack(spacing: 8) {
-                        QuickActionButton(title: "ELI5") {
+                        QuickActionButton(title: "eli5") {
                             prompt = "Explain this like I'm 5: "
                             isFocused = true
                         }
-                        QuickActionButton(title: "Rewrite") {
+                        QuickActionButton(title: "rewrite") {
                             prompt = "Rewrite this to be more professional: "
                             isFocused = true
                         }
@@ -126,6 +151,7 @@ struct AskView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetAskView"))) { _ in
             self.response = ""
             self.isLoading = false
+            self.isContextVisible = !appState.selectedText.isEmpty
             self.prompt = ""
             self.isFocused = true
         }
@@ -139,7 +165,12 @@ struct AskView: View {
         // Reset state for new question
         isLoading = true
         response = ""
-        // Keep the prompt in the box as requested
+        
+        // Cycle focus to prevent automatic text highlighting
+        isFocused = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            isFocused = true
+        }
         
         Task {
             let aiService = AIService(apiKey: appState.apiKey)

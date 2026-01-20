@@ -23,12 +23,11 @@ struct RightHereApp: App {
             Button("ask right here") {
                 appState.showAskDialog()
             }
-            .keyboardShortcut("a", modifiers: [.control, .option])
             
             Divider()
             
             if !appState.history.isEmpty {
-                Menu("History") {
+                Menu("history") {
                     ForEach(appState.history.prefix(10)) { item in
                         Button(action: {
                             appState.showHistoryDetail(item)
@@ -40,7 +39,7 @@ struct RightHereApp: App {
                     
                     if appState.history.count > 10 {
                         Divider()
-                        Button("View All History...") {
+                        Button("view all history...") {
                             appState.showHistoryList()
                         }
                     }
@@ -49,17 +48,17 @@ struct RightHereApp: App {
                 Divider()
             }
             
-            Button("Settings...") {
+            Button("settings...") {
                 appState.showSettings()
             }
             
             Divider()
             
-            Button("Quit") {
+            Button("quit") {
                 NSApplication.shared.terminate(nil)
             }
         } label: {
-            Text("r h")
+            Text("r_h")
         }
     }
 }
