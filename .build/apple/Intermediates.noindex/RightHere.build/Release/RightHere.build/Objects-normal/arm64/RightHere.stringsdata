@@ -1,0 +1,40 @@
+{
+  "source": "/Users/local/Desktop/play/righthere/Sources/RightHere.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "RightHere",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 9
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ask RightHere",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 10
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings...",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 17
+        }
+      },
+      {
+        "comment": "",
+        "key": "Quit",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 23
+        }
+      }
+    ]
+  },
+  "version": 1
+}

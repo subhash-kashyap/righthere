@@ -1,0 +1,11 @@
+version: "Apple Swift version 6.0.2 (swiftlang-6.0.2.1.2 clang-1600.0.26.4)"
+options: "7cc71c856a70470b0bf84d463b2dfe702dc439b67955052d1c57470097c9d479"
+build_start_time: [1768917785, 121494000]
+build_end_time: [1768917789, 103609000]
+inputs:
+  "/Users/local/Desktop/play/righthere/Sources/AIService.swift": [1768916040, 766811851]
+  "/Users/local/Desktop/play/righthere/Sources/Managers/ServiceProvider.swift": [1768915698, 799888367]
+  "/Users/local/Desktop/play/righthere/Sources/Views/AskView.swift": [1768916882, 617094893]
+  "/Users/local/Desktop/play/righthere/Sources/Views/HistoryView.swift": [1768916897, 454808529]
+  "/Users/local/Desktop/play/righthere/Sources/Views/SettingsView.swift": [1768916911, 136823880]
+  "/Users/local/Desktop/play/righthere/Sources/right_here.swift": [1768917635, 893394218]

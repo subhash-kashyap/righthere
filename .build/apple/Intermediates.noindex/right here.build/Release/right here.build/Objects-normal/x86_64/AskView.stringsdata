@@ -1,0 +1,40 @@
+{
+  "source": "/Users/local/Desktop/play/righthere/Sources/Views/AskView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Ask anything...",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "ask right here",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 14
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Close",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 45
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,27 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "keyboardshortcuts",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/sindresorhus/KeyboardShortcuts",
+          "name" : "KeyboardShortcuts"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "045cf174010beb335fa1d2567d18c057b8787165",
+            "version" : "2.3.0"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "KeyboardShortcuts"
+      }
+    ]
+  },
+  "version" : 6
+}
