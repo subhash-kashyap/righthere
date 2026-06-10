@@ -53,9 +53,9 @@ struct SettingsView: View {
             HStack(spacing: 6) {
                 sectionLabel("Shortcut")
                 Spacer()
-                keycap("⌥") ; keycap("⌥") ; keycap("R")
+                keycap("⌥ left") ; keycap("⌥ right") ; keycap("R")
             }
-            caption("Hold both Option keys and press R. Needs Accessibility access (macOS asks on first launch).")
+            caption("Hold Option (left) and Option (right) together, then press R.")
         }
         .padding(16)
         .frame(width: 320)

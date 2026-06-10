@@ -1,12 +1,17 @@
 import AppKit
+import Carbon.HIToolbox
 
-/// Global shortcut: hold both Option keys and press R.
+/// Global shortcut: hold both Option keys and press R — with no
+/// Accessibility permission required.
 ///
-/// Carbon hotkeys and the usual shortcut libraries can't tell left Option
-/// from right Option, so this watches raw key events instead. Global key
-/// monitoring only delivers events once the app has been granted
-/// Accessibility access (System Settings → Privacy & Security → Accessibility);
-/// the system prompt for it is triggered on first launch.
+/// Carbon's RegisterEventHotKey can't tell left Option from right Option,
+/// and a global keyDown monitor (which can) needs Accessibility access.
+/// The workaround: modifier changes (flagsChanged) are observable without
+/// any permission, so this watches the two Option keys and only while BOTH
+/// are held registers a Carbon hotkey for ⌥R. Release either Option and the
+/// hotkey is gone — ⌥R keeps typing "®" everywhere, and the app never sees
+/// the keystroke stream.
+@MainActor
 final class HotkeyManager {
 
     /// Device-dependent modifier bits from IOKit's hidsystem
@@ -14,43 +19,68 @@ final class HotkeyManager {
     /// distinguish the two Option keys in an NSEvent.
     private static let leftOptionBit: UInt = 0x20
     private static let rightOptionBit: UInt = 0x40
-    private static let rKeyCode: UInt16 = 15  // kVK_ANSI_R
 
+    private let onTrigger: () -> Void
     private var monitors: [Any] = []
+    private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
 
     init(onTrigger: @escaping @MainActor () -> Void) {
-        promptForAccessibilityIfNeeded()
+        self.onTrigger = onTrigger
+        installCarbonHandler()
 
-        // Global monitor fires when another app has focus; the local one
-        // covers the case where this app is frontmost.
-        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { event in
-            guard Self.isChord(event) else { return }
-            Task { @MainActor in onTrigger() }
+        // The global monitor sees other apps' modifier changes; the local
+        // one covers the case where this app is frontmost.
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: { event in
+            MainActor.assumeIsolated { Self.shared?.optionStateChanged(event) }
         }) {
             monitors.append(monitor)
         }
 
-        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { event in
-            guard Self.isChord(event) else { return event }
-            Task { @MainActor in onTrigger() }
-            return nil
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { event in
+            MainActor.assumeIsolated { Self.shared?.optionStateChanged(event) }
+            return event
         }) {
             monitors.append(monitor)
         }
+
+        Self.shared = self
     }
 
-    private static func isChord(_ event: NSEvent) -> Bool {
+    // The app keeps a single manager for its whole lifetime; a static
+    // reference lets the @Sendable monitor closures reach it without
+    // capturing non-Sendable state.
+    private static weak var shared: HotkeyManager?
+
+    private func optionStateChanged(_ event: NSEvent) {
         let raw = event.modifierFlags.rawValue
-        return event.keyCode == rKeyCode
-            && raw & leftOptionBit != 0
-            && raw & rightOptionBit != 0
-            && event.modifierFlags.intersection([.command, .control, .shift]).isEmpty
+        let bothOptionsHeld = raw & Self.leftOptionBit != 0 && raw & Self.rightOptionBit != 0
+        bothOptionsHeld ? registerHotkey() : unregisterHotkey()
     }
 
-    private func promptForAccessibilityIfNeeded() {
-        // Literal key for kAXTrustedCheckOptionPrompt — the extern CFStringRef
-        // is a `var` to Swift and gets rejected under strict concurrency.
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
+    /// Active only while both Option keys are down.
+    private func registerHotkey() {
+        guard hotKeyRef == nil else { return }
+        let hotKeyID = EventHotKeyID(signature: OSType(0x5248_4552), id: 1)  // 'RHER'
+        RegisterEventHotKey(UInt32(kVK_ANSI_R), UInt32(optionKey), hotKeyID,
+                            GetApplicationEventTarget(), 0, &hotKeyRef)
+    }
+
+    private func unregisterHotkey() {
+        guard let ref = hotKeyRef else { return }
+        UnregisterEventHotKey(ref)
+        hotKeyRef = nil
+    }
+
+    private func installCarbonHandler() {
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
+                                      eventKind: UInt32(kEventHotKeyPressed))
+        InstallEventHandler(GetApplicationEventTarget(), { _, _, userData in
+            guard let userData else { return noErr }
+            let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
+            // Carbon delivers app-target events on the main run loop.
+            MainActor.assumeIsolated { manager.onTrigger() }
+            return noErr
+        }, 1, &eventType, Unmanaged.passUnretained(self).toOpaque(), &eventHandlerRef)
     }
 }

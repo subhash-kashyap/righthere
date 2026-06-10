@@ -34,7 +34,7 @@ The app lives in your menu bar (look for "right here").
 
 **Shortcut:** hold **both Option keys** and press **R** (⌥ ⌥ R).
 
-The shortcut needs Accessibility access — macOS prompts on first launch. Grant it in *System Settings → Privacy & Security → Accessibility*, then relaunch the app. (Both-Option chords can't be registered through normal hotkey APIs, so the app watches key events directly; that's all the permission is used for.)
+No Accessibility permission needed — the app watches only modifier-key state (which macOS allows freely) and registers a system hotkey for the R press just while both Options are held. It never reads your keystrokes, and ⌥R still types "®" normally everywhere.
 
 You can also select text in any app and choose **Services → ask right here** from the right-click menu to pre-fill it as context.
 
