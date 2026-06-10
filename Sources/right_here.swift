@@ -63,15 +63,15 @@ struct RightHereApp: App {
 }
 
 enum AIEngine: String, CaseIterable {
-    case auto      // on-device when available, otherwise OpenAI
+    case auto      // on-device when available, otherwise the user's own API
     case onDevice  // Apple Foundation Models only
-    case openAI    // OpenAI API only
+    case openAI    // user's own API key only (rawValue kept for stored prefs)
 
     var label: String {
         switch self {
         case .auto: return "auto"
         case .onDevice: return "on-device"
-        case .openAI: return "openai"
+        case .openAI: return "own api"
         }
     }
 }
@@ -79,7 +79,18 @@ enum AIEngine: String, CaseIterable {
 @MainActor
 class AppState: ObservableObject {
     @AppStorage("apiKey") var apiKey: String = ""
+    @AppStorage("apiProvider") var apiProviderRaw: String = APIProvider.openai.rawValue
+    @AppStorage("apiModel") var apiModel: String = ""
     @AppStorage("aiEngine") var aiEngineRaw: String = AIEngine.auto.rawValue
+
+    var apiProvider: APIProvider {
+        APIProvider(rawValue: apiProviderRaw) ?? .openai
+    }
+
+    /// The own-API client as currently configured in Settings.
+    var apiService: AIService {
+        AIService(provider: apiProvider, apiKey: apiKey, model: apiModel)
+    }
 
     var aiEngine: AIEngine {
         get { AIEngine(rawValue: aiEngineRaw) ?? .auto }

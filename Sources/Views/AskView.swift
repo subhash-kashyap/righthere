@@ -49,6 +49,13 @@ struct AskView: View {
 
                 Spacer()
 
+                if appState.resolvedEngine == .onDevice {
+                    Text("local")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .help("answers come from the on-device model — nothing leaves this Mac")
+                }
+
                 Button(action: {
                     appState.showSettings()
                 }) {
@@ -131,14 +138,9 @@ struct AskView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             ForEach(turns) { turn in
                                 VStack(alignment: .leading, spacing: 6) {
-                                    // The first question is still visible in the
-                                    // input area's history of the user's mind; label
-                                    // each turn once a follow-up exists.
-                                    if turns.count > 1 {
-                                        Text(turn.question)
-                                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                            .foregroundColor(.secondary)
-                                    }
+                                    Text(turn.question)
+                                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.secondary)
                                     Text(turn.answer.isEmpty ? "…" : turn.answer)
                                         .font(.system(size: 13, design: .serif))
                                         .lineSpacing(4)
@@ -154,9 +156,12 @@ struct AskView: View {
                     .background(Color.primary.opacity(0.03))
                     .cornerRadius(12)
                     .padding(16)
-                    .onChange(of: turns) { _, newTurns in
-                        if let last = newTurns.last {
-                            proxy.scrollTo(last.id, anchor: .bottom)
+                    // Scroll once when a turn is added so its question is in
+                    // view, then stay put — following the stream down would
+                    // yank the text away while the user reads.
+                    .onChange(of: turns.count) { _, _ in
+                        if let last = turns.last {
+                            proxy.scrollTo(last.id, anchor: .top)
                         }
                     }
                 }
@@ -196,12 +201,13 @@ struct AskView: View {
         // The engine's transcript carries earlier turns, so pasted context
         // only needs to ride along on the first question.
         let currentContext = turns.isEmpty ? appState.selectedText : ""
-        prompt = ""
+        // The question stays in the input on purpose — the user clears or
+        // edits it themselves when they want a follow-up.
         isLoading = true
 
         // First question pins the conversation to whichever engine is
         // ready right now; follow-ups stay on it.
-        let convo = conversation ?? Conversation(engine: appState.resolvedEngine, apiKey: appState.apiKey)
+        let convo = conversation ?? Conversation(engine: appState.resolvedEngine, api: appState.apiService)
         conversation = convo
 
         let turn = ChatTurn(question: currentPrompt)

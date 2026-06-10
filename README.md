@@ -8,7 +8,7 @@ Answers come from **Apple's on-device Foundation Models** when available (privat
 
 - **Floating ask box** — summon it from anywhere with a global shortcut
 - **On-device AI** — uses Apple Foundation Models (Apple Intelligence) on macOS 26+; nothing leaves your Mac
-- **OpenAI fallback** — works on older macOS or ineligible hardware with your own API key (`gpt-4o-mini`)
+- **Bring your own API** — OpenAI, Anthropic, or OpenRouter key as the fallback on older macOS or ineligible hardware, with a configurable model
 - **Streaming answers** — text appears as it's generated, on both engines
 - **Follow-ups** — keep asking in the same box; the conversation carries context until you summon it fresh
 - **Ask about selected text** — right-click selected text in any app → Services → *ask right here*
@@ -46,16 +46,16 @@ Pick an engine in Settings (menu bar → settings…):
 
 | Mode | Behavior |
 |---|---|
-| `auto` (default) | On-device when ready, otherwise OpenAI |
+| `auto` (default) | On-device when ready, otherwise your own API key |
 | `on-device` | Apple Foundation Models only — no API key, no network |
-| `openai` | OpenAI API only — requires your API key |
+| `own api` | Your own key only — OpenAI, Anthropic, or OpenRouter, model configurable |
 
-Settings shows live on-device availability (model downloading, Apple Intelligence off, ineligible hardware) so you always know which engine will answer next.
+Settings shows live on-device availability (model downloading, Apple Intelligence off, ineligible hardware) so you always know which engine will answer next, and the ask box shows a small "local" label whenever answers are on-device. Settings also has a check-for-updates button that compares against this repo's GitHub releases.
 
 ## Privacy
 
 - **On-device mode:** prompts and context never leave your Mac.
-- **OpenAI mode:** prompts and context are sent to the OpenAI API with your key.
+- **Own-API mode:** prompts and context are sent to your chosen provider with your key.
 - History and your API key are stored locally in the app's preferences.
 
 ## Roadmap

@@ -5,16 +5,24 @@ struct SettingsView: View {
     // so changing the picker re-renders this view immediately (an @AppStorage
     // inside an ObservableObject doesn't publish changes).
     @AppStorage("aiEngine") private var aiEngineRaw = AIEngine.auto.rawValue
+    @AppStorage("apiProvider") private var apiProviderRaw = APIProvider.openai.rawValue
+    @AppStorage("apiModel") private var apiModel = ""
     @AppStorage("apiKey") private var apiKey = ""
+
+    @StateObject private var updateChecker = UpdateChecker()
 
     private var engine: AIEngine {
         AIEngine(rawValue: aiEngineRaw) ?? .auto
     }
 
+    private var provider: APIProvider {
+        APIProvider(rawValue: apiProviderRaw) ?? .openai
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                sectionLabel("Engine")
+                sectionLabel("AI Model")
 
                 Picker("", selection: $aiEngineRaw) {
                     ForEach(AIEngine.allCases, id: \.rawValue) { engine in
@@ -28,22 +36,35 @@ struct SettingsView: View {
                 statusLine
             }
 
-            // Only show the API key where it can actually be used:
+            // Only show API configuration where it can actually be used:
             // never in on-device mode, as a labeled fallback in auto.
             if engine != .onDevice {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 6) {
-                    sectionLabel("OpenAI API Key")
+                    sectionLabel("Own AI API")
 
-                    SecureField("sk-...", text: $apiKey)
+                    Picker("", selection: $apiProviderRaw) {
+                        ForEach(APIProvider.allCases, id: \.rawValue) { provider in
+                            Text(provider.label).tag(provider.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .controlSize(.small)
+
+                    SecureField("api key", text: $apiKey)
+                        .textFieldStyle(.roundedBorder)
+                        .controlSize(.small)
+
+                    TextField("model (default: \(provider.defaultModel))", text: $apiModel)
                         .textFieldStyle(.roundedBorder)
                         .controlSize(.small)
 
                     if engine == .auto {
                         caption("Only used when the on-device model isn't available.")
                     } else if apiKey.isEmpty {
-                        caption("Required — answers go through the OpenAI API.")
+                        caption("Required — answers go through \(provider.label).")
                     }
                 }
             }
@@ -56,6 +77,10 @@ struct SettingsView: View {
                 keycap("⌥ left") ; keycap("⌥ right") ; keycap("R")
             }
             caption("Hold Option (left) and Option (right) together, then press R.")
+
+            Divider()
+
+            updatesSection
         }
         .padding(16)
         .frame(width: 320)
@@ -70,7 +95,7 @@ struct SettingsView: View {
             if status.isReady {
                 statusText("✓ using the on-device model — no API key needed", color: .green)
             } else {
-                statusText("using OpenAI (\(status.message))", color: .secondary)
+                statusText("using \(provider.label) (\(status.message))", color: .secondary)
             }
         case .onDevice:
             if status.isReady {
@@ -79,7 +104,33 @@ struct SettingsView: View {
                 statusText("⚠ \(status.message)", color: .orange)
             }
         case .openAI:
-            statusText("answers go through the OpenAI API", color: .secondary)
+            statusText("answers go through \(provider.label) with your key", color: .secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var updatesSection: some View {
+        HStack(spacing: 8) {
+            sectionLabel("Updates")
+            caption("v\(UpdateChecker.currentVersion)")
+            Spacer()
+            switch updateChecker.state {
+            case .idle:
+                Button("check for updates") { updateChecker.check() }
+                    .controlSize(.small)
+            case .checking:
+                ProgressView()
+                    .controlSize(.small)
+            case .upToDate:
+                caption("✓ up to date")
+            case .updateAvailable(let version, _):
+                Button("get v\(version)") { updateChecker.openRelease() }
+                    .controlSize(.small)
+            case .failed:
+                caption("couldn't check")
+                Button("retry") { updateChecker.check() }
+                    .controlSize(.small)
+            }
         }
     }
 

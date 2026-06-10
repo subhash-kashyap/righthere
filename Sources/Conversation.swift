@@ -15,9 +15,9 @@ final class Conversation {
     static let systemPrompt = "You are a helpful assistant. Provide concise answers."
 
     let engine: AIEngine
-    private let apiKey: String
+    private let api: AIService
 
-    /// OpenAI transcript; grows by one user + one assistant entry per turn.
+    /// Own-API transcript; grows by one user + one assistant entry per turn.
     private var messages: [[String: String]] = [
         ["role": "system", "content": Conversation.systemPrompt]
     ]
@@ -27,9 +27,9 @@ final class Conversation {
     /// touched inside #available blocks.
     private var localSession: Any?
 
-    init(engine: AIEngine, apiKey: String) {
+    init(engine: AIEngine, api: AIService) {
         self.engine = engine
-        self.apiKey = apiKey
+        self.api = api
     }
 
     /// Streams the answer as cumulative snapshots of the full reply text
@@ -45,7 +45,7 @@ final class Conversation {
         case .onDevice:
             return streamLocal(message)
         case .openAI, .auto:
-            return streamOpenAI(message)
+            return streamRemote(message)
         }
     }
 
@@ -79,11 +79,11 @@ final class Conversation {
         #endif
     }
 
-    // MARK: - OpenAI
+    // MARK: - Own API (OpenAI / Anthropic / OpenRouter)
 
-    private func streamOpenAI(_ message: String) -> AsyncThrowingStream<String, Error> {
+    private func streamRemote(_ message: String) -> AsyncThrowingStream<String, Error> {
         messages.append(["role": "user", "content": message])
-        let service = AIService(apiKey: apiKey)
+        let service = api
         let transcript = messages
 
         return AsyncThrowingStream { continuation in
