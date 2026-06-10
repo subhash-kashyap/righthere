@@ -1,8 +1,8 @@
 import Foundation
 
-/// OpenAI chat-completions client. Used when the on-device model isn't
-/// available (older macOS, ineligible hardware) or when the user picks
-/// the openai engine explicitly.
+/// OpenAI chat-completions client (streaming). Used when the on-device
+/// model isn't available (older macOS, ineligible hardware) or when the
+/// user picks the openai engine explicitly.
 struct AIService {
     let apiKey: String
 
@@ -22,23 +22,36 @@ struct AIService {
         }
     }
 
-    func ask(prompt: String, context: String = "") async throws -> String {
-        guard !apiKey.isEmpty else {
-            throw AIError.missingAPIKey
+    /// Streams the assistant reply as cumulative snapshots of the full
+    /// text (each yielded value replaces the previous one).
+    func stream(messages: [[String: String]]) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    try await streamInto(continuation, messages: messages)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
         }
+    }
 
+    private func streamInto(
+        _ continuation: AsyncThrowingStream<String, Error>.Continuation,
+        messages: [[String: String]]
+    ) async throws {
+        guard !apiKey.isEmpty else { throw AIError.missingAPIKey }
         guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
             throw AIError.invalidURL
         }
 
-        let userMessage = context.isEmpty ? prompt : "Context: \(context)\n\nQuestion: \(prompt)"
         let body: [String: Any] = [
             "model": "gpt-4o-mini",
-            "messages": [
-                ["role": "system", "content": "You are a helpful assistant. Provide concise answers."],
-                ["role": "user", "content": userMessage]
-            ],
-            "temperature": 0.7
+            "messages": messages,
+            "temperature": 0.7,
+            "stream": true
         ]
 
         var request = URLRequest(url: url)
@@ -47,23 +60,39 @@ struct AIService {
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AIError.noResponse
         }
         guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "unknown error"
+            var errorData = Data()
+            for try await byte in bytes { errorData.append(byte) }
+            let errorBody = String(data: errorData, encoding: .utf8) ?? "unknown error"
             throw AIError.requestFailed("HTTP \(httpResponse.statusCode): \(errorBody)")
         }
 
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            throw AIError.noResponse
+        // Server-sent events: "data: {json}" lines, closed by "data: [DONE]".
+        var fullReply = ""
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data: ") else { continue }
+            let payload = String(line.dropFirst(6))
+            if payload == "[DONE]" { break }
+            if let delta = Self.deltaContent(in: payload) {
+                fullReply += delta
+                continuation.yield(fullReply)
+            }
         }
+    }
 
-        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Pulls `choices[0].delta.content` out of one SSE chunk.
+    private static func deltaContent(in payload: String) -> String? {
+        guard let data = payload.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let delta = choices.first?["delta"] as? [String: Any] else {
+            return nil
+        }
+        return delta["content"] as? String
     }
 }

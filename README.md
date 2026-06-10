@@ -9,6 +9,8 @@ Answers come from **Apple's on-device Foundation Models** when available (privat
 - **Floating ask box** — summon it from anywhere with a global shortcut
 - **On-device AI** — uses Apple Foundation Models (Apple Intelligence) on macOS 26+; nothing leaves your Mac
 - **OpenAI fallback** — works on older macOS or ineligible hardware with your own API key (`gpt-4o-mini`)
+- **Streaming answers** — text appears as it's generated, on both engines
+- **Follow-ups** — keep asking in the same box; the conversation carries context until you summon it fresh
 - **Ask about selected text** — right-click selected text in any app → Services → *ask right here*
 - **Quick actions** — one-tap *eli5* and *rewrite* prompts for pasted context
 - **History** — past questions and answers, stored locally

@@ -3,12 +3,11 @@ import Foundation
 import FoundationModels
 #endif
 
-/// On-device answers via Apple Foundation Models (Apple Intelligence).
-/// No API key, no network. Requires macOS 26+, Apple Silicon, and
-/// Apple Intelligence enabled in System Settings.
-///
-/// Built with `canImport` + `#available` guards so the app still compiles
-/// and runs on older macOS (falls back to OpenAI there).
+/// Availability of Apple's on-device model (Apple Intelligence).
+/// Requires macOS 26+, Apple Silicon, and Apple Intelligence enabled in
+/// System Settings. Conversation state lives in `Conversation`; this only
+/// answers "can the on-device engine take a question right now, and if
+/// not, why not" — safe to call on any macOS version.
 struct LocalAIService {
 
     enum Status {
@@ -28,7 +27,6 @@ struct LocalAIService {
         }
     }
 
-    /// Safe to call on any macOS version.
     static var status: Status {
         #if canImport(FoundationModels)
         if #available(macOS 26.0, *) {
@@ -49,29 +47,6 @@ struct LocalAIService {
         }
         #else
         return .unavailable("app was built without the FoundationModels SDK")
-        #endif
-    }
-
-    func ask(prompt: String, context: String = "") async throws -> String {
-        #if canImport(FoundationModels)
-        guard #available(macOS 26.0, *), Self.status.isReady else {
-            throw AIService.AIError.requestFailed(Self.status.message)
-        }
-
-        // The on-device model has a ~4096 token context window — keep the
-        // pasted context from blowing past it.
-        let trimmedContext = String(context.prefix(8_000))
-        let userMessage = trimmedContext.isEmpty
-            ? prompt
-            : "Context: \(trimmedContext)\n\nQuestion: \(prompt)"
-
-        let session = LanguageModelSession(
-            instructions: "You are a helpful assistant. Provide concise answers."
-        )
-        let response = try await session.respond(to: userMessage)
-        return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
-        #else
-        throw AIService.AIError.requestFailed("app was built without the FoundationModels SDK")
         #endif
     }
 }
