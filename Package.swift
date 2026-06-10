@@ -9,15 +9,9 @@ let package = Package(
     products: [
         .executable(name: "right here", targets: ["right here"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.0.0")
-    ],
     targets: [
         .executableTarget(
             name: "right here",
-            dependencies: [
-                "KeyboardShortcuts"
-            ],
             path: "Sources"
         )
     ]

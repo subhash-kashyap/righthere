@@ -1,5 +1,4 @@
 import SwiftUI
-import KeyboardShortcuts
 
 struct HistoryItem: Identifiable, Codable, Hashable {
     var id = UUID()
@@ -100,6 +99,7 @@ class AppState: ObservableObject {
     @Published var history: [HistoryItem] = []
     
     private var serviceProvider: ServiceProvider?
+    private var hotkeyManager: HotkeyManager?
     private var askWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var historyWindow: NSWindow?
@@ -111,25 +111,14 @@ class AppState: ObservableObject {
     }
     
     private func loadHistory() {
-        if let data = historyJSON.data(using: .utf8) {
-            do {
-                self.history = try JSONDecoder().decode([HistoryItem].self, from: data)
-            } catch {
-                print("[DEBUG] Failed to load history: \(error)")
-                self.history = []
-            }
-        }
+        guard let data = historyJSON.data(using: .utf8) else { return }
+        history = (try? JSONDecoder().decode([HistoryItem].self, from: data)) ?? []
     }
-    
+
     private func saveHistory() {
-        do {
-            let data = try JSONEncoder().encode(self.history)
-            if let jsonString = String(data: data, encoding: .utf8) {
-                self.historyJSON = jsonString
-            }
-        } catch {
-            print("[DEBUG] Failed to save history: \(error)")
-        }
+        guard let data = try? JSONEncoder().encode(history),
+              let jsonString = String(data: data, encoding: .utf8) else { return }
+        historyJSON = jsonString
     }
     
     func addToHistory(question: String, answer: String, context: String) {
@@ -139,10 +128,8 @@ class AppState: ObservableObject {
     }
     
     func setupHotkeys() {
-        KeyboardShortcuts.onKeyDown(for: .askRightHere) { [weak self] in
-            Task { @MainActor in
-                self?.showAskDialog()
-            }
+        hotkeyManager = HotkeyManager { [weak self] in
+            self?.showAskDialog()
         }
     }
     
@@ -195,7 +182,7 @@ class AppState: ObservableObject {
     
     func showSettings() {
         if settingsWindow == nil {
-            let view = SettingsView(appState: self)
+            let view = SettingsView()
             let hostingController = NSHostingController(rootView: view)
             
             let window = NSWindow(
@@ -246,8 +233,4 @@ class AppState: ObservableObject {
         historyWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
-}
-
-extension KeyboardShortcuts.Name {
-    static let askRightHere = Self("askRightHere", default: .init(.a, modifiers: [.control, .option]))
 }

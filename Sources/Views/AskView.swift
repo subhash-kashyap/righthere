@@ -172,7 +172,9 @@ struct AskView: View {
             isFocused = true
         }
         
+        // resolvedEngine never returns .auto — it's already settled to a concrete engine.
         let engine = appState.resolvedEngine
+        let apiKey = appState.apiKey
         Task {
             do {
                 let result: String
@@ -180,7 +182,7 @@ struct AskView: View {
                 case .onDevice:
                     result = try await LocalAIService().ask(prompt: currentPrompt, context: currentContext)
                 case .openAI, .auto:
-                    result = try await AIService(apiKey: appState.apiKey).ask(prompt: currentPrompt, context: currentContext)
+                    result = try await AIService(apiKey: apiKey).ask(prompt: currentPrompt, context: currentContext)
                 }
                 await MainActor.run {
                     withAnimation {

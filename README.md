@@ -1,0 +1,61 @@
+# right here
+
+A tiny macOS menu bar assistant. Select text anywhere, summon a floating ask box, get an answer — without switching apps.
+
+Answers come from **Apple's on-device Foundation Models** when available (private, offline, no API key), with an optional OpenAI fallback for Macs that can't run Apple Intelligence.
+
+## Features
+
+- **Floating ask box** — summon it from anywhere with a global shortcut
+- **On-device AI** — uses Apple Foundation Models (Apple Intelligence) on macOS 26+; nothing leaves your Mac
+- **OpenAI fallback** — works on older macOS or ineligible hardware with your own API key (`gpt-4o-mini`)
+- **Ask about selected text** — right-click selected text in any app → Services → *ask right here*
+- **Quick actions** — one-tap *eli5* and *rewrite* prompts for pasted context
+- **History** — past questions and answers, stored locally
+
+## Requirements
+
+- macOS 14+ (Apple Silicon or Intel) for the OpenAI engine
+- macOS 26+ with Apple Intelligence enabled, on Apple Silicon, for the on-device engine
+- Xcode 26+ to build
+
+## Build & run
+
+```sh
+git clone <this repo>
+cd righthere
+./build.sh
+open "right here.app"
+```
+
+The app lives in your menu bar (look for "right here").
+
+## Usage
+
+**Shortcut:** hold **both Option keys** and press **R** (⌥ ⌥ R).
+
+The shortcut needs Accessibility access — macOS prompts on first launch. Grant it in *System Settings → Privacy & Security → Accessibility*, then relaunch the app. (Both-Option chords can't be registered through normal hotkey APIs, so the app watches key events directly; that's all the permission is used for.)
+
+You can also select text in any app and choose **Services → ask right here** from the right-click menu to pre-fill it as context.
+
+## Engines
+
+Pick an engine in Settings (menu bar → settings…):
+
+| Mode | Behavior |
+|---|---|
+| `auto` (default) | On-device when ready, otherwise OpenAI |
+| `on-device` | Apple Foundation Models only — no API key, no network |
+| `openai` | OpenAI API only — requires your API key |
+
+Settings shows live on-device availability (model downloading, Apple Intelligence off, ineligible hardware) so you always know which engine will answer next.
+
+## Privacy
+
+- **On-device mode:** prompts and context never leave your Mac.
+- **OpenAI mode:** prompts and context are sent to the OpenAI API with your key.
+- History and your API key are stored locally in the app's preferences.
+
+## License
+
+[MIT](LICENSE)

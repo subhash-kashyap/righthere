@@ -1,68 +1,69 @@
 import Foundation
 
+/// OpenAI chat-completions client. Used when the on-device model isn't
+/// available (older macOS, ineligible hardware) or when the user picks
+/// the openai engine explicitly.
 struct AIService {
     let apiKey: String
-    
-    enum AIError: Error {
+
+    enum AIError: Error, LocalizedError {
+        case missingAPIKey
         case invalidURL
         case noResponse
         case requestFailed(String)
-    }
-    
-    func ask(prompt: String, context: String = "") async throws -> String {
-        print("[DEBUG] AIService.ask called (OpenAI)")
-        guard !apiKey.isEmpty else {
-            print("[DEBUG] API Key is empty")
-            return "Please set your OpenAI API key in the menu bar settings."
+
+        var errorDescription: String? {
+            switch self {
+            case .missingAPIKey: return "Add your OpenAI API key in Settings, or switch to the on-device engine."
+            case .invalidURL: return "Invalid API URL."
+            case .noResponse: return "The API returned an unexpected response."
+            case .requestFailed(let reason): return reason
+            }
         }
-        
-        let urlString = "https://api.openai.com/v1/chat/completions"
-        guard let url = URL(string: urlString) else {
-            print("[DEBUG] Invalid URL: \(urlString)")
+    }
+
+    func ask(prompt: String, context: String = "") async throws -> String {
+        guard !apiKey.isEmpty else {
+            throw AIError.missingAPIKey
+        }
+
+        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
             throw AIError.invalidURL
         }
-        
-        let systemPrompt = "You are a helpful assistant. Provide concise answers."
+
         let userMessage = context.isEmpty ? prompt : "Context: \(context)\n\nQuestion: \(prompt)"
-        
         let body: [String: Any] = [
             "model": "gpt-4o-mini",
             "messages": [
-                ["role": "system", "content": systemPrompt],
+                ["role": "system", "content": "You are a helpful assistant. Provide concise answers."],
                 ["role": "user", "content": userMessage]
             ],
             "temperature": 0.7
         ]
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        print("[DEBUG] Fetching AI response from OpenAI...")
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AIError.noResponse
         }
-        
-        if httpResponse.statusCode != 200 {
-            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("[DEBUG] AI Request failed with status: \(httpResponse.statusCode), body: \(errorMsg)")
-            throw AIError.requestFailed("HTTP \(httpResponse.statusCode): \(errorMsg)")
+        guard httpResponse.statusCode == 200 else {
+            let errorBody = String(data: data, encoding: .utf8) ?? "unknown error"
+            throw AIError.requestFailed("HTTP \(httpResponse.statusCode): \(errorBody)")
         }
-        
-        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let choices = json["choices"] as? [[String: Any]],
-           let firstChoice = choices.first,
-           let message = firstChoice["message"] as? [String: Any],
-           let content = message["content"] as? String {
-            print("[DEBUG] Successfully parsed OpenAI response")
-            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let message = choices.first?["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            throw AIError.noResponse
         }
-        
-        print("[DEBUG] AI response had no expected content")
-        throw AIError.noResponse
+
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

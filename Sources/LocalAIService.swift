@@ -58,8 +58,6 @@ struct LocalAIService {
             throw AIService.AIError.requestFailed(Self.status.message)
         }
 
-        print("[DEBUG] LocalAIService.ask called (Apple Foundation Models)")
-
         // The on-device model has a ~4096 token context window — keep the
         // pasted context from blowing past it.
         let trimmedContext = String(context.prefix(8_000))
@@ -71,7 +69,6 @@ struct LocalAIService {
             instructions: "You are a helpful assistant. Provide concise answers."
         )
         let response = try await session.respond(to: userMessage)
-        print("[DEBUG] LocalAIService got on-device response")
         return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         #else
         throw AIService.AIError.requestFailed("app was built without the FoundationModels SDK")
