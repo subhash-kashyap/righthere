@@ -58,7 +58,21 @@ struct RightHereApp: App {
                 NSApplication.shared.terminate(nil)
             }
         } label: {
-            Text("r_h")
+            Text("right here")
+        }
+    }
+}
+
+enum AIEngine: String, CaseIterable {
+    case auto      // on-device when available, otherwise OpenAI
+    case onDevice  // Apple Foundation Models only
+    case openAI    // OpenAI API only
+
+    var label: String {
+        switch self {
+        case .auto: return "auto"
+        case .onDevice: return "on-device"
+        case .openAI: return "openai"
         }
     }
 }
@@ -66,6 +80,20 @@ struct RightHereApp: App {
 @MainActor
 class AppState: ObservableObject {
     @AppStorage("apiKey") var apiKey: String = ""
+    @AppStorage("aiEngine") var aiEngineRaw: String = AIEngine.auto.rawValue
+
+    var aiEngine: AIEngine {
+        get { AIEngine(rawValue: aiEngineRaw) ?? .auto }
+        set { aiEngineRaw = newValue.rawValue }
+    }
+
+    /// Resolves which engine actually handles the next question.
+    var resolvedEngine: AIEngine {
+        switch aiEngine {
+        case .auto: return LocalAIService.status.isReady ? .onDevice : .openAI
+        default: return aiEngine
+        }
+    }
     @AppStorage("history_json") private var historyJSON: String = "[]"
     
     @Published var selectedText: String = ""
@@ -171,7 +199,7 @@ class AppState: ObservableObject {
             let hostingController = NSHostingController(rootView: view)
             
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 280, height: 160),
+                contentRect: NSRect(x: 0, y: 0, width: 300, height: 250),
                 styleMask: [.titled, .closable],
                 backing: .buffered,
                 defer: false

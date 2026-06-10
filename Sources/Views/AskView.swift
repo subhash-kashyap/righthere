@@ -172,10 +172,16 @@ struct AskView: View {
             isFocused = true
         }
         
+        let engine = appState.resolvedEngine
         Task {
-            let aiService = AIService(apiKey: appState.apiKey)
             do {
-                let result = try await aiService.ask(prompt: currentPrompt, context: currentContext)
+                let result: String
+                switch engine {
+                case .onDevice:
+                    result = try await LocalAIService().ask(prompt: currentPrompt, context: currentContext)
+                case .openAI, .auto:
+                    result = try await AIService(apiKey: appState.apiKey).ask(prompt: currentPrompt, context: currentContext)
+                }
                 await MainActor.run {
                     withAnimation {
                         self.response = result
