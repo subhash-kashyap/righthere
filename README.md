@@ -58,6 +58,10 @@ Settings shows live on-device availability (model downloading, Apple Intelligenc
 - **OpenAI mode:** prompts and context are sent to the OpenAI API with your key.
 - History and your API key are stored locally in the app's preferences.
 
+## Roadmap
+
+Ideas under consideration live in [futurefeatures.md](futurefeatures.md).
+
 ## License
 
 [MIT](LICENSE)
