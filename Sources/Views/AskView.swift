@@ -108,7 +108,11 @@ struct AskView: View {
                             isFocused = true
                         }
                         QuickActionButton(title: "rewrite") {
-                            prompt = "Rewrite this to be more professional: "
+                            prompt = "Rewrite this into "
+                            isFocused = true
+                        }
+                        QuickActionButton(title: "expl. clearly") {
+                            prompt = "Explain this clearly with examples"
                             isFocused = true
                         }
                         Spacer()

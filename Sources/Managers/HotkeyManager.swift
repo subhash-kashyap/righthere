@@ -22,7 +22,8 @@ final class HotkeyManager {
 
     private let onTrigger: () -> Void
     private var monitors: [Any] = []
-    private var hotKeyRef: EventHotKeyRef?
+    private var hotKeyRefR: EventHotKeyRef?
+    private var hotKeyRefO: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
 
     init(onTrigger: @escaping @MainActor () -> Void) {
@@ -60,16 +61,27 @@ final class HotkeyManager {
 
     /// Active only while both Option keys are down.
     private func registerHotkey() {
-        guard hotKeyRef == nil else { return }
-        let hotKeyID = EventHotKeyID(signature: OSType(0x5248_4552), id: 1)  // 'RHER'
-        RegisterEventHotKey(UInt32(kVK_ANSI_R), UInt32(optionKey), hotKeyID,
-                            GetApplicationEventTarget(), 0, &hotKeyRef)
+        if hotKeyRefR == nil {
+            let id = EventHotKeyID(signature: OSType(0x5248_4552), id: 1)  // 'RHER'
+            RegisterEventHotKey(UInt32(kVK_ANSI_R), UInt32(optionKey), id,
+                                GetApplicationEventTarget(), 0, &hotKeyRefR)
+        }
+        if hotKeyRefO == nil {
+            let id = EventHotKeyID(signature: OSType(0x5248_4552), id: 2)  // 'RHER'
+            RegisterEventHotKey(UInt32(kVK_ANSI_O), UInt32(optionKey), id,
+                                GetApplicationEventTarget(), 0, &hotKeyRefO)
+        }
     }
 
     private func unregisterHotkey() {
-        guard let ref = hotKeyRef else { return }
-        UnregisterEventHotKey(ref)
-        hotKeyRef = nil
+        if let ref = hotKeyRefR {
+            UnregisterEventHotKey(ref)
+            hotKeyRefR = nil
+        }
+        if let ref = hotKeyRefO {
+            UnregisterEventHotKey(ref)
+            hotKeyRefO = nil
+        }
     }
 
     private func installCarbonHandler() {
